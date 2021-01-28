@@ -36,9 +36,9 @@ class CarbonIntensity():
         root = ET.fromstring(rawdata)
 
         # Extract generation figures from XML tree
-        responseCode = root[0][1].text
+        responseCode = int(root[0][1].text)
         
-        if responseCode <> 200
+        if responseCode != 200
             return {'data': 'Error reaching current generation data'}, 200
         else:
             currentTotalMW = int(root[2][0][0].text)
