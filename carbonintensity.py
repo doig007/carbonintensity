@@ -22,9 +22,11 @@ CarbonIntensity = pd.DataFrame(CarbonIntensityData,columns=['FuelType','CarbonIn
 # Elexon API input URL [BMRS-API-Data-Push-User-Guide.pdf]
 ElexonURL = 'https://api.bmreports.com/BMRS/FUELINSTHHCUR/' + VersionNo + '?APIKey=' + APIKey
 
+# Call Elexon API and parse response into XML tree
 rawdata = requests.get(url=ElexonURL).text
 root = ET.fromstring(rawdata)
 
+# Extract generation figures from XML tree
 ResponseCode = root[0][1].text
 currentTotalMW = int(root[2][0][0].text)
 currentTotalPercentag = float(root[2][0][1].text)
@@ -37,9 +39,10 @@ for child in root[2][1]:
 
 df = pd.DataFrame({'FuelType': FuelTypes, 'CurrentMW': CurrentMW})
 
+# Map carbon intensities onto generation figures by fuel type
 df = df.merge(CarbonIntensity, left_on='FuelType', right_on='FuelType')
 
-df['Carbon'] = df.CurrentMW * df.CarbonIntensity
+df['CarbonEmissions'] = df.CurrentMW * df.CarbonIntensity
 df['CurrentPC'] = round(df.CurrentMW / df.CurrentMW.sum() * 100,1)
 
-AverageCarbonIntensity = df.Carbon.sum() / df.CurrentMW.sum()
+AverageCarbonIntensity = df.CarbonEmissions.sum() / df.CurrentMW.sum()
