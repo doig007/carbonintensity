@@ -38,7 +38,7 @@ class CarbonIntensity():
         # Extract generation figures from XML tree
         responseCode = int(root[0][1].text)
         
-        if responseCode != 200
+        if responseCode != 200:
             return {'data': 'Error reaching current generation data'}, 200
         else:
             currentTotalMW = int(root[2][0][0].text)
