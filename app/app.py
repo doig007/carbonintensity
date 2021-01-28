@@ -29,7 +29,7 @@ elexonURL = 'https://api.bmreports.com/BMRS/FUELINSTHHCUR/' + elexonVersionNo + 
 app = Flask(__name__)
 api = Api(app)
 
-class CarbonIntensity():
+class CarbonIntensity(Resource):
     def get(self):
         # Call Elexon API and parse response into XML tree
         rawdata = requests.get(url=elexonURL,timeout=20).text
