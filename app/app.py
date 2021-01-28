@@ -36,7 +36,7 @@ class CarbonIntensity(Resource):
         root = ET.fromstring(rawdata)
 
         # Extract generation figures from XML tree
-        responseCode = int(root[0][1].text)
+        responseCode = int(root[0][0].text)
         
         if responseCode != 200:
             return {'data': 'Error reaching current generation data'}, 200
