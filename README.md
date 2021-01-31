@@ -10,8 +10,16 @@ https://hub.docker.com/repository/docker/doig/carbonintensity/
 ### Environment variables
 | Variable | Description |
 | --- | --- |
-| elexonAPIKey | Personal Elexon API key, available under 'my profile’ tab under Elexon account (free registration) |
-| PORT | Port on which to listen for calls to API |
+| carbonintensity_elexonAPIKey | Personal Elexon API key, available under 'my profile’ tab under Elexon account (free registration) |
+| --- | --- |
+| carbonintensity_appUseDirectAPI | True/False dictates whether calls to the API are directly passed onto the Elexon API (Default, True) or whether a MySQL DB server is used to cache results (False) |
+| carbonintensity_dbServer | MySQL DB server address (if any) |
+| carbonintensity_dbUser | MySQL DB user name (if any) |
+| carbonintensity_dbPassword | MySQL DB user password (if any) |
+| carbonintensity_dbSchema | MySQL DB scheme name for caching data (if any) |
+| carbonintensity_dbTable | MySQL DB table name for caching data (if any) |
+| --- | --- |
+| carbonintensity_port | Port on which to listen for calls to API |
 
 
 
@@ -20,3 +28,4 @@ https://hub.docker.com/repository/docker/doig/carbonintensity/
 - Caching of generation data calls to speed up API response
 - Addition of parameters to return more information
 - More accurate carbon intensity factors for each fuel type/source
+- Incorporating TensorFlow model for providing forecasts
