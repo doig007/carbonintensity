@@ -1,5 +1,5 @@
 # Carbon Intensity API
-Simple carbon intensity API for the GB grid that returns the current (5 min) carbon intensity in the GB electricity grid.  Initially draws from the 'current' generation fuel mix as published by [Elexon](https://www.elexon.co.uk) via [BMRS](https://api.bmreports.com/BMRS/FUELINSTHHCUR).
+Simple carbon intensity API for the GB grid that returns the current (last 5 min) carbon intensity (gCO2/kWh) in the GB electricity grid.  Initially draws from the 'current' generation fuel mix as published by [Elexon](https://www.elexon.co.uk) via [BMRS](https://api.bmreports.com/BMRS/FUELINSTHHCUR).
 
 For avoidance of doubt, this is unrelated to [National Grid's carbon intensity API](https://carbonintensity.org.uk/), which does not appear to be currently supported (based upon activity in the GitHub).  I have no insight into how that works, except from their methodology paper (which does not describe how to reproduce) and assumptions published by others in journals.
 
@@ -22,6 +22,8 @@ https://hub.docker.com/repository/docker/doig/carbonintensity/
 Configuration of the API can be made via environmment variables either in the Docker container or system.
 | Environment variable | Description |
 | ------------- | ------------- |
+| `carbonintensity_port` | Port on which to listen for calls to API (default: 8812) |
+| `carbonintensity_serverFolder` | Server folder on which to listen for calls to API (default: \carbon) |
 | `carbonintensity_elexonAPIKey` | Personal Elexon API key, available under 'my profile’ tab under Elexon account (free registration) |
 | `carbonintensity_appUseDirectAPI` | True/False dictates whether calls to the API are directly passed onto the Elexon API (True) or whether a MySQL DB server is used to cache results (False) (default: True) |
 | `carbonintensity_dbServer` | MySQL DB server address (if any) |
@@ -29,7 +31,7 @@ Configuration of the API can be made via environmment variables either in the Do
 | `carbonintensity_dbPassword` | MySQL DB user password (if any) |
 | `carbonintensity_dbSchema` | MySQL DB scheme name for caching data (if any) |
 | `carbonintensity_dbTable` | MySQL DB table name for caching data (if any) |
-| `carbonintensity_port` | Port on which to listen for calls to API (default: 8812) |
+
 
 
 
