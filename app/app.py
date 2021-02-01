@@ -1,10 +1,10 @@
+import logging
 from datetime import date, time, datetime
 import time as t
 import xml.etree.ElementTree as ET
 import pandas as pd
 import requests
-import json
-from flask import Flask
+from flask import Flask, request, jsonify
 from flask_restful import Resource, Api, reqparse
 import os
 from sqlalchemy import create_engine
@@ -32,9 +32,10 @@ carbonIntensity = pd.DataFrame(carbonIntensityData,columns=['fuelType','carbonIn
 # Elexon API input URL [BMRS-API-Data-Push-User-Guide.pdf]
 elexonURL = 'https://api.bmreports.com/BMRS/FUELINSTHHCUR/' + elexonVersionNo + '?APIKey=' + elexonAPIKey
 
-
-
 # Application configuration
+carbonintensity_serverFolder = os.environ.get('carbonintensity_serverFolder','carbon')
+carbonintensity_port = int(os.environ.get('carbonintensity_port',8812))
+
 if os.environ.get('carbonintensity_appUseDirectAPI') is not None:
     appUseDirectAPI = (os.environ.get('carbonintensity_appUseDirectAPI') == 'True') 
 else: appUseDirectAPI = True
@@ -133,6 +134,10 @@ class SimpleCarbonIntensity(Resource):
     # This class fetches the Elexon generation data when a get request is made, calculates the average carbon intensity and returns it.
 
     def get(self):
+
+        # Parse request arguments
+        query_parameters = request.args       
+
         # Call Elexon API and parse response into XML tree
         rawdata = fetch_elexon_data(elexonURL,20)
         root = ET.fromstring(rawdata)
@@ -144,12 +149,7 @@ class SimpleCarbonIntensity(Resource):
         if responseCode != 200:
             return {'data': 'Error reaching current generation data'}, responseCode
         else:
-            # currentTotalMW = int(root[2][0][0].text)
-            # currentTotalPercentage = float(root[2][0][1].text)
-            # lastHalfHourTotalMW = int(root[2][0][2].text)
-
             currentMW = []
-
             for child in root[2][1]:
                 currentMW.append(int(child[2].text))
 
@@ -163,7 +163,9 @@ class SimpleCarbonIntensity(Resource):
 
             averageCarbonIntensity = round(df.carbonEmissions.sum() / df.currentMW.sum(),1)
             returndata = {'Average Carbon Intensity (gCO2/kWh)':averageCarbonIntensity, 'Data Last Updated': dataLastUpdatedDB}
-            
+            if bool(query_parameters.get('showsources')):
+                returndata['Sources'] = df[['fuelType','currentMW','carbonIntensity']].to_dict('records')
+                logging.debug(returndata)
             return {'response': returndata}, 200
 
 
@@ -189,7 +191,7 @@ class CacheCarbonIntensity(Resource):
 
 
 if (appUseDirectAPI):
-    api.add_resource(SimpleCarbonIntensity, '/carbon')
+    api.add_resource(SimpleCarbonIntensity, '/'+carbonintensity_serverFolder)
 
 else:
     scheduler = BackgroundScheduler()
@@ -200,4 +202,4 @@ else:
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='127.0.0.1', port=int(os.environ.get('carbonintensity_port', 8812)))
+    app.run(debug=True, host='127.0.0.1', port=carbonintensity_port)
