@@ -6,6 +6,7 @@ import pandas as pd
 import requests
 from flask import Flask, request, jsonify
 from flask_restful import Resource, Api, reqparse
+from flask_caching import Cache
 import os
 from sqlalchemy import create_engine
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -15,7 +16,8 @@ elexonAPIKey = os.environ.get('carbonintensity_elexonAPIKey')
 elexonVersionNo = 'v1'
 APIServiceType = 'XML'
 elexonUpdateFrequency = 5 # number of minutes between updates for FUELINSTHHCUR series
-elexonWaitTime = 75 # number of seconds to wait after each period for Elexon backend to update
+elexonWaitTime = 60 # number of seconds to wait after each period for Elexon backend to update
+
 
 fuelTypes = ['CCGT','OCGT','OIL','COAL','NUCLEAR','WIND',
              'PS','NPSHYD','OTHER','INTFR','INTIRL','INTNED',
@@ -31,6 +33,15 @@ carbonIntensity = pd.DataFrame(carbonIntensityData,columns=['fuelType','carbonIn
 
 # Elexon API input URL [BMRS-API-Data-Push-User-Guide.pdf]
 elexonURL = 'https://api.bmreports.com/BMRS/FUELINSTHHCUR/' + elexonVersionNo + '?APIKey=' + elexonAPIKey
+
+
+cacheConfig = {
+    "CACHE_TYPE": "simple", # Flask-Caching related configs
+    "CACHE_DEFAULT_TIMEOUT": elexonUpdateFrequency * 60
+}
+
+
+
 
 # Application configuration
 carbonintensity_serverFolder = os.environ.get('carbonintensity_serverFolder','carbon')
@@ -49,7 +60,9 @@ if appUseDirectAPI == False:
     dbTable = os.environ.get('carbonintensity_dbTable')
 
 app = Flask(__name__)
+cache = Cache(app, config=cacheConfig)
 api = Api(app)
+
 
 
 def fetch_elexon_data(URL,timeOutLimit):      
@@ -99,12 +112,12 @@ def parse_elexon_data(rawdata):
     return df 
 
 
-def write_data_to_sql(df):
+def write_data_to_storage(df):
     engine = create_engine('mysql://' + dbUser + ':' + dbPassword + '@' + dbServer + '/' + dbSchema)
     df.to_sql(dbTable,con=engine,if_exists='append',index=False)
 
 
-def fetch_cache_data():
+def fetch_stored_data():
     engine = create_engine('mysql://' + dbUser + ':' + dbPassword + '@' + dbServer + '/' + dbSchema)
     querySQL = 'SELECT * FROM ' + dbTable + '.fuelinsthhcur WHERE dataLastUpdated in (SELECT max(dataLastUpdated) FROM ' + dbTable + '.fuelinsthhcur);'
     return pd.read_sql(con=engine)
@@ -127,12 +140,20 @@ def periodic_update(waitTime):
     df['carbonAmount'] = df.currentMW * df.carbonIntensity
     df['averageTotalCarbonIntensity'] = df.carbonAmount.sum() / df.currentMW.sum()
 
-    write_data_to_sql(df)
+    write_data_to_storage(df)
+
+
+def clear_cache(waitTime):    
+    t.sleep(waitTime)
+
+    with app.app_context():
+        cache.clear()
 
 
 class SimpleCarbonIntensity(Resource):
     # This class fetches the Elexon generation data when a get request is made, calculates the average carbon intensity and returns it.
 
+    @cache.cached(timeout=elexonUpdateFrequency*60)
     def get(self):
 
         # Parse request arguments
@@ -145,7 +166,7 @@ class SimpleCarbonIntensity(Resource):
         # Extract generation figures from XML tree
         responseCode = int(root[0][0].text)
         dataLastUpdatedDB = root[2][3].text
-               
+                
         if responseCode != 200:
             return {'data': 'Error reaching current generation data'}, responseCode
         else:
@@ -160,6 +181,7 @@ class SimpleCarbonIntensity(Resource):
 
             df['carbonEmissions'] = df.currentMW * df.carbonIntensity
             df['currentPC'] = round(df.currentMW / df.currentMW.sum() * 100,1)
+            df['dataLastUpdated'] = dataLastUpdatedDB
 
             averageCarbonIntensity = round(df.carbonEmissions.sum() / df.currentMW.sum(),1)
             returndata = {'Average Carbon Intensity (gCO2/kWh)':averageCarbonIntensity, 'Data Last Updated': dataLastUpdatedDB}
@@ -170,13 +192,12 @@ class SimpleCarbonIntensity(Resource):
 
 
 class CacheCarbonIntensity(Resource):
-    #def __init__(self):
-        
+       
     def get(self):
         rawdata = fetch_elexon_data(elexonURL,20)
         root = ET.fromstring(rawdata)
 
-        df = fetch_cache_data()
+        df = fetch_stored_data()
 
         averageCarbonIntensity = df.averageTotalCarbonIntensity.iloc[0]
         dataLastUpdatedDB = df.dataLastUpdated.iloc[0]
@@ -186,18 +207,16 @@ class CacheCarbonIntensity(Resource):
         return {'response': returndata}, 200
 
 
-
-
-
+scheduler = BackgroundScheduler()
+scheduler.start()
 
 if (appUseDirectAPI):
+    scheduler.add_job(clear_cache, args=[elexonWaitTime], trigger=CronTrigger.from_crontab('*/5 * * * *')) # set up the scheduled jobs, tell job to wait a specified time to allow Elexon backend to update
     api.add_resource(SimpleCarbonIntensity, '/'+carbonintensity_serverFolder)
 
 else:
-    scheduler = BackgroundScheduler()
-    scheduler.start()
     periodic_update(0) # fetch the latest data immediately on first run
-    scheduler.add_job(periodic_update, args=[elexonWaitTime], trigger=CronTrigger.from_crontab('*/5 * * * *')) # set up the scheduled jobs, tell job to wait a specified time to allow Elexon backend to update
+    scheduler.add_job(periodic_update, args=[elexonWaitTime], trigger=CronTrigger.from_crontab('*/5 * * * *'),misfire_grace_time=600) # set up the scheduled jobs, tell job to wait a specified time to allow Elexon backend to update
 
 
 
