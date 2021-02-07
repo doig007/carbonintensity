@@ -1,5 +1,8 @@
 flask
 flask-restful
+flask-caching
 gunicorn
 pandas
 requests
+sqlalchemy
+apscheduler
