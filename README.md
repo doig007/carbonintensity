@@ -13,7 +13,6 @@ For avoidance of doubt, this is unrelated to [National Grid's carbon intensity A
 }
 ```
 
-
 ### Docker repository
 Docker container build available on docker.com:
 https://hub.docker.com/repository/docker/doig/carbonintensity/
@@ -41,3 +40,102 @@ Configuration of the API can be made via environmment variables either in the Do
 - Addition of parameters to return more information
 - More accurate carbon intensity factors for each fuel type/source
 - Incorporating TensorFlow model for providing forecasts
+
+
+## Example API response (showsources=True)
+```
+{
+    "response": {
+        "Average Carbon Intensity (gCO2/kWh)": 215.7,
+        "Data Last Updated": "2021-02-02 12:10:00",
+        "Sources": [
+            {
+                "fuelType": "CCGT",
+                "currentMW": 15855,
+                "carbonIntensity": 394
+            },
+            {
+                "fuelType": "OCGT",
+                "currentMW": 0,
+                "carbonIntensity": 651
+            },
+            {
+                "fuelType": "OIL",
+                "currentMW": 0,
+                "carbonIntensity": 935
+            },
+            {
+                "fuelType": "COAL",
+                "currentMW": 1567,
+                "carbonIntensity": 937
+            },
+            {
+                "fuelType": "NUCLEAR",
+                "currentMW": 5215,
+                "carbonIntensity": 0
+            },
+            {
+                "fuelType": "WIND",
+                "currentMW": 10820,
+                "carbonIntensity": 0
+            },
+            {
+                "fuelType": "PS",
+                "currentMW": 0,
+                "carbonIntensity": 0
+            },
+            {
+                "fuelType": "NPSHYD",
+                "currentMW": 233,
+                "carbonIntensity": 0
+            },
+            {
+                "fuelType": "OTHER",
+                "currentMW": 148,
+                "carbonIntensity": 300
+            },
+            {
+                "fuelType": "INTFR",
+                "currentMW": 2003,
+                "carbonIntensity": 48
+            },
+            {
+                "fuelType": "INTIRL",
+                "currentMW": 251,
+                "carbonIntensity": 426
+            },
+            {
+                "fuelType": "INTNED",
+                "currentMW": 0,
+                "carbonIntensity": 513
+            },
+            {
+                "fuelType": "INTEW",
+                "currentMW": 339,
+                "carbonIntensity": 426
+            },
+            {
+                "fuelType": "BIOMASS",
+                "currentMW": 1742,
+                "carbonIntensity": 120
+            },
+            {
+                "fuelType": "INTNEM",
+                "currentMW": 999,
+                "carbonIntensity": 132
+            },
+            {
+                "fuelType": "INTIFA2",
+                "currentMW": 0,
+                "carbonIntensity": 48
+            },
+            {
+                "fuelType": "INTNSL",
+                "currentMW": 0,
+                "carbonIntensity": 0
+            }
+        ]
+    }
+}
+```
+
